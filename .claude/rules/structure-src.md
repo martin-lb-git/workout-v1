@@ -76,7 +76,7 @@ Les fichiers partagés entre plusieurs forms restent plats dans `src/components/
 - Jamais de logique — uniquement des `const` exportées
 
 **`src/context/`**
-- Contextes React globaux (auth, notifications)
+- Contextes React globaux (notifications, thème…)
 - Exposés via un hook `useX()` — jamais le contexte brut
 
 **`src/App.css`**

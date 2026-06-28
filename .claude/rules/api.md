@@ -1,5 +1,5 @@
 ---
-description: Appels Xano, instance Axios centralisée, hooks React Query
+description: Instance Axios centralisée, hooks React Query, patterns GET/mutation
 globs: src/api/**/*.ts, src/hooks/**/*.ts
 alwaysApply: false
 ---
@@ -12,14 +12,10 @@ Tous les appels Axios passent par `src/api/client.ts`. Ne jamais créer d'instan
 
 ```ts
 const client = axios.create({
-  baseURL: '/api/proxy',  // toujours relatif — jamais l'URL Xano directement
+  baseURL: import.meta.env.VITE_API_BASE_URL,
   withCredentials: true,
 })
 ```
-
-`baseURL: '/api/proxy'` — en dev, Vite proxifie vers Xano. En prod/preview, Vercel route vers `api/proxy.ts`. Le client ne connaît jamais l'URL Xano directement.
-
-`VITE_XANO_BASE_URL` n'est **pas** dans `client.ts`. Il sert uniquement à construire les URLs d'images vault dans les fichiers API qui en ont besoin.
 
 ## Organisation des fichiers API
 
@@ -27,38 +23,30 @@ Un fichier par domaine dans `src/api/` :
 
 ```
 src/api/
-├── client.ts          → instance Axios + intercepteur X-Data-Source
-├── auth.ts            → login, me, logout
-├── bookings.ts
-├── islands.ts
-├── services.ts
-├── shareholders.ts
-├── documents.ts
-├── groups.ts
-├── villas.ts
-└── export.ts
+├── client.ts          → instance Axios unique
+└── <domaine>.ts       → un fichier par domaine métier
 ```
 
-Chaque fichier exporte des fonctions pures qui appellent Xano et retournent les données.
+Chaque fichier exporte des fonctions pures qui appellent l'API et retournent les données.
 Aucune logique métier dans ces fichiers.
 
-## Hooks React Query exemple
+## Hooks React Query
 
 Les hooks dans `src/hooks/` wrappent React Query. C'est le seul endroit où on appelle les fonctions `src/api/`.
 
 ```ts
 // Bon
-const { data, isLoading } = useIslands()
+const { data, isLoading } = useItems()
 
 // Interdit — appel direct dans un composant
-const res = await axios.get('/island/all_island')
+const res = await axios.get('/items')
 ```
 
-### Convention queryKey exemple
+### Convention queryKey
 
 ```ts
-queryKey: ['islands']                        // liste simple
-queryKey: ['bookings', villaId ?? null]      // avec paramètre optionnel — null si absent
+queryKey: ['items']                        // liste simple
+queryKey: ['items', id ?? null]            // avec paramètre optionnel — null si absent
 ```
 
 Utiliser le même queryKey pour invalider après une mutation.
@@ -70,7 +58,7 @@ Utiliser le même queryKey pour invalider après une mutation.
 export interface House { id: number; label: string }
 
 export async function getHouses(): Promise<House[]> {
-  const { data } = await client.get<House[]>('/house/all')
+  const { data } = await client.get<House[]>('/houses')
   return data
 }
 
@@ -85,52 +73,13 @@ export function useHouses() {
 ```ts
 // src/api/houses.ts
 export async function editHouse(payload: EditHousePayload): Promise<void> {
-  await client.patch('/house', { body: payload })
+  await client.patch('/houses', payload)
 }
 
-// dans le composant
+// dans la page
 const queryClient = useQueryClient()
 const mutation = useMutation({
   mutationFn: editHouse,
   onSuccess: () => queryClient.invalidateQueries({ queryKey: ['houses'] }),
 })
 ```
-
-Les mutations Xano reçoivent le payload wrappé dans `{ body: payload }` — vérifier sur les endpoints existants si ce n'est pas le cas.
-
-## Champs JSON-stringifiés (piège Xano)
-
-Xano retourne parfois des tableaux ou objets sous forme de string JSON. Les typer avec `string | T[] | null` et parser :
-
-```ts
-interface RawIsland extends Omit<Island, 'villas'> {
-  villas: string | Villa[] | null
-}
-
-function parseJsonField<T>(value: string | T[] | null): T[] | null {
-  if (!value) return null
-  if (Array.isArray(value)) return value
-  try {
-    const parsed = JSON.parse(value)
-    return Array.isArray(parsed) ? parsed : null
-  } catch { return null }
-}
-```
-
-## Images vault Xano
-
-Les fichiers Xano Vault ont un `path` (ex: `/vault/abc.jpg`). URL complète :
-
-```ts
-imageUrl: attachment?.path
-  ? `${(import.meta.env.VITE_XANO_BASE_URL ?? '').split('/api:')[0]}${attachment.path}`
-  : null
-```
-
-`.split('/api:')[0]` extrait l'origine depuis l'URL d'API (ex: `https://xyz.xano.io`).
-
-## Xano — référence endpoints BO
-
-- Auth : `POST /auth/login`, `GET /auth/me`, `POST /auth/logout`
-- Logout géré par le proxy, pas par Xano — voir @.claude/knowledge/auth-proxy.md
-- Staging : header `X-Data-Source: staging` injecté automatiquement

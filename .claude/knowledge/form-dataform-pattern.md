@@ -1,5 +1,5 @@
 ---
-description: Pattern dataform — état générique page → formulaire react-hook-form + zod → mutation Xano
+description: Pattern dataform — état générique page → formulaire react-hook-form + zod → mutation API
 alwaysApply: false
 ---
 
@@ -125,7 +125,7 @@ z.number({ invalid_type_error: 'Requis' })
 
 `react-hot-toast` est monté une seule fois dans `App.tsx` (`<Toaster position="top-right" />`). Ne jamais le remonter ailleurs.
 
-Pattern d'extraction de l'erreur Xano dans chaque handler :
+Pattern d'extraction de l'erreur API dans chaque handler :
 
 ```ts
 } catch (err: unknown) {
@@ -136,7 +136,7 @@ Pattern d'extraction de l'erreur Xano dans chaque handler :
 }
 ```
 
-Xano retourne son message d'erreur dans `response.data.message`. Le fallback `err.message` couvre les erreurs réseau. Ne jamais afficher un message générique sans avoir tenté d'extraire le message Xano.
+Le fallback `err.message` couvre les erreurs réseau. Ne jamais afficher un message générique sans avoir tenté d'extraire le message API.
 
 ## Champs conditionnels — `watch()` + `superRefine`
 
@@ -149,4 +149,4 @@ Pour afficher/masquer un champ selon la valeur d'un autre, utiliser `watch()` de
 - `useEffect(() => reset(dataform), [dataform, reset])` est obligatoire pour les forms réutilisés
 - `invalidateQueries` se fait dans le handler page, jamais dans le form component
 - L'id de l'item n'est jamais dans le form — il vient de l'état `editingItem` de la page
-- Toujours extraire `err.response.data.message` avant de fallback sur un message générique
+- Toujours extraire `err.response?.data?.message` avant de fallback sur un message générique

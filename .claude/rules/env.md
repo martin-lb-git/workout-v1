@@ -1,5 +1,5 @@
 ---
-description: Variables d'environnement, fichiers .env, scripts npm, configuration Vercel
+description: Variables d'environnement, fichiers .env, scripts npm
 alwaysApply: true
 ---
 
@@ -7,9 +7,9 @@ alwaysApply: true
 
 | Variable | Usage | Présent en |
 |---|---|---|
-| `VITE_XANO_BASE_URL` | URL de base de l'API Xano | dev, staging, prod |
-| `VITE_XANO_DATA_SOURCE` | Valeur `staging` — injecte le header `X-Data-Source` | staging uniquement |
-| `VITE_INSCRIPTION_BASE_URL` | URL de base du lien d'inscription actionnaire | dev, staging, prod |
+| `VITE_API_BASE_URL` | URL de base de l'API | dev, staging, prod |
+
+> Compléter selon le projet instancié.
 
 ## Fichiers locaux
 
@@ -26,21 +26,10 @@ Copiés depuis `.env.example`, jamais committés :
 | `npm run build` | Build prod | Prod |
 | `npm run build:staging` | Build staging | Staging |
 
-## Configuration Vercel
-
-| Variable | Environnement Vercel |
-|---|---|
-| `VITE_XANO_BASE_URL` | Preview + Production |
-| `VITE_XANO_DATA_SOURCE=staging` | Preview uniquement |
-
-Vercel lit `package.json`, fait `npm install` puis `npm run build`.
-Les variables sont saisies dans Vercel Settings → Environment Variables (pas de fichier `.env` en prod).
-
 ## Accès dans le code
 
 ```ts
-import.meta.env.VITE_XANO_BASE_URL
-import.meta.env.VITE_XANO_DATA_SOURCE
+import.meta.env.VITE_API_BASE_URL
 ```
 
 `VITE_*` est visible dans le bundle JS final — ne jamais y mettre de clé secrète.
